@@ -10,8 +10,11 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecovera
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.Base64;
 import com.google.api.client.util.ExponentialBackOff;
 
+import com.google.api.client.util.StringUtils;
+import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 
 import com.google.api.services.gmail.model.*;
@@ -29,6 +32,8 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
@@ -48,18 +53,23 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class MainActivity extends Activity
         implements EasyPermissions.PermissionCallbacks {
     GoogleAccountCredential mCredential;
-    private TextView mOutputText;
-    private Button mCallApiButton;
+//    private TextView mOutputText;
+//    private Button mCallApiButton;
     ProgressDialog mProgress;
 
     static final int REQUEST_ACCOUNT_PICKER = 1000;
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
+    static final int SEV_REQUEST_PERMISSION_GET_MESSAGES = 1004;
 
     private static final String BUTTON_TEXT = "Call Gmail API";
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = { GmailScopes.GMAIL_LABELS };
+    private static final String[] SCOPES = { GmailScopes.GMAIL_LABELS, GmailScopes.MAIL_GOOGLE_COM };
+
+    Button mCallApiButton;
+//    TextView mOutputText;
+    RecyclerView recyclerView;
 
     /**
      * Create the main activity.
@@ -68,46 +78,53 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LinearLayout activityLayout = new LinearLayout(this);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT);
-        activityLayout.setLayoutParams(lp);
-        activityLayout.setOrientation(LinearLayout.VERTICAL);
-        activityLayout.setPadding(16, 16, 16, 16);
+        setContentView(R.layout.activity_main);
 
-        ViewGroup.LayoutParams tlp = new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
+        mCallApiButton = (Button) findViewById(R.id.sevButton);
+//        mOutputText = (TextView) findViewById(R.id.stupidText);
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
 
-        mCallApiButton = new Button(this);
-        mCallApiButton.setText(BUTTON_TEXT);
+
+//        LinearLayout activityLayout = new LinearLayout(this);
+//        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+//                LinearLayout.LayoutParams.MATCH_PARENT,
+//                LinearLayout.LayoutParams.MATCH_PARENT);
+//        activityLayout.setLayoutParams(lp);
+//        activityLayout.setOrientation(LinearLayout.VERTICAL);
+//        activityLayout.setPadding(16, 16, 16, 16);
+//
+//        ViewGroup.LayoutParams tlp = new ViewGroup.LayoutParams(
+//                ViewGroup.LayoutParams.WRAP_CONTENT,
+//                ViewGroup.LayoutParams.WRAP_CONTENT);
+
+//        mCallApiButton = new Button(this);
+//        mCallApiButton.setText(BUTTON_TEXT);
         mCallApiButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mCallApiButton.setEnabled(false);
-                mOutputText.setText("");
+//                mOutputText.setText("");
                 getResultsFromApi();
                 mCallApiButton.setEnabled(true);
             }
         });
-        activityLayout.addView(mCallApiButton);
-
-        mOutputText = new TextView(this);
-        mOutputText.setLayoutParams(tlp);
-        mOutputText.setPadding(16, 16, 16, 16);
-        mOutputText.setVerticalScrollBarEnabled(true);
-        mOutputText.setMovementMethod(new ScrollingMovementMethod());
-        mOutputText.setText(
-                "Click the \'" + BUTTON_TEXT +"\' button to test the API.");
-        activityLayout.addView(mOutputText);
-
+//        activityLayout.addView(mCallApiButton);
+//
+//        mOutputText = new TextView(this);
+//        mOutputText.setLayoutParams(tlp);
+//        mOutputText.setPadding(16, 16, 16, 16);
+//        mOutputText.setVerticalScrollBarEnabled(true);
+//        mOutputText.setMovementMethod(new ScrollingMovementMethod());
+//        mOutputText.setText(
+//                "Click the \'" + BUTTON_TEXT +"\' button to test the API.");
+//        activityLayout.addView(mOutputText);
+//
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Gmail API ...");
-
-        setContentView(activityLayout);
-
-        // Initialize credentials and service object.
+//
+//        setContentView(activityLayout);
+//
+//        // Initialize credentials and service object.
         mCredential = GoogleAccountCredential.usingOAuth2(
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
@@ -128,7 +145,7 @@ public class MainActivity extends Activity
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
         } else if (! isDeviceOnline()) {
-            mOutputText.setText("No network connection available.");
+//            mOutputText.setText("No network connection available.");
         } else {
             new MakeRequestTask(mCredential).execute();
         }
@@ -186,9 +203,9 @@ public class MainActivity extends Activity
         switch(requestCode) {
             case REQUEST_GOOGLE_PLAY_SERVICES:
                 if (resultCode != RESULT_OK) {
-                    mOutputText.setText(
-                            "This app requires Google Play Services. Please install " +
-                                    "Google Play Services on your device and relaunch this app.");
+//                    mOutputText.setText(
+//                            "This app requires Google Play Services. Please install " +
+//                                    "Google Play Services on your device and relaunch this app.");
                 } else {
                     getResultsFromApi();
                 }
@@ -336,6 +353,7 @@ public class MainActivity extends Activity
          */
         @Override
         protected List<String> doInBackground(Void... params) {
+            System.out.println("");
             try {
                 return getDataFromApi();
             } catch (Exception e) {
@@ -353,19 +371,40 @@ public class MainActivity extends Activity
         private List<String> getDataFromApi() throws IOException {
             // Get the labels in the user's account.
             String user = "me";
-            List<String> labels = new ArrayList<>();
-            ListLabelsResponse listResponse =
-                    mService.users().labels().list(user).execute();
-            for (Label label : listResponse.getLabels()) {
-                labels.add(label.getName());
+            ListMessagesResponse messageResponse =
+                    mService.users().messages().list(user).execute();
+
+            List<Message> tempMessages = messageResponse.getMessages();
+            List<Message> messageIdList = new ArrayList<>();
+
+            for (int i = 0; i < 10; i++) {
+                messageIdList.add(tempMessages.get(i));
             }
-            return labels;
+
+            List<Message> messageList = new ArrayList<>();
+
+            for (Message messagey : messageIdList) {
+                messageList.add(mService.users().messages().get(user, messagey.getId()).execute());
+            }
+
+            List<String> messageBodies = new ArrayList<>();
+            List<String> messageSnippets = new ArrayList<>();
+
+            for (Message messma : messageList) {
+                List<MessagePart> parts = messma.getPayload().getParts();
+                if (parts != null) {
+                    messageBodies.add(new String(Base64.decodeBase64(parts.get(0).getBody().getData().getBytes())));
+                    messageSnippets.add(messma.getSnippet());
+                }
+            }
+
+            return messageSnippets;
         }
 
 
         @Override
         protected void onPreExecute() {
-            mOutputText.setText("");
+//            mOutputText.setText("");
             mProgress.show();
         }
 
@@ -373,10 +412,17 @@ public class MainActivity extends Activity
         protected void onPostExecute(List<String> output) {
             mProgress.hide();
             if (output == null || output.size() == 0) {
-                mOutputText.setText("No results returned.");
+//                mOutputText.setText("No results returned.");
             } else {
                 output.add(0, "Data retrieved using the Gmail API:");
-                mOutputText.setText(TextUtils.join("\n", output));
+//                mOutputText.setText(TextUtils.join("\n", output));
+
+                // Create adapter passing in the sample user data
+                SnippetAdapter adapter = new SnippetAdapter(getBaseContext(), output);
+                // Attach the adapter to the recyclerview to populate items
+                recyclerView.setAdapter(adapter);
+                // Set layout manager to position the items
+                recyclerView.setLayoutManager(new LinearLayoutManager(getBaseContext()));
             }
         }
 
@@ -393,11 +439,11 @@ public class MainActivity extends Activity
                             ((UserRecoverableAuthIOException) mLastError).getIntent(),
                             MainActivity.REQUEST_AUTHORIZATION);
                 } else {
-                    mOutputText.setText("The following error occurred:\n"
-                            + mLastError.getMessage());
+//                    mOutputText.setText("The following error occurred:\n"
+//                            + mLastError.getMessage());
                 }
             } else {
-                mOutputText.setText("Request cancelled.");
+//                mOutputText.setText("Request cancelled.");
             }
         }
     }
